@@ -7,6 +7,7 @@
 #include <chrono>
 #include<sstream>
 
+#pragma once
 constexpr uint32_t PANIC_RESET = 80;
 
 enum class cell_type {
@@ -35,7 +36,7 @@ struct game_state {
     game_state(game_state const& rhs);
     game_state(game_state&& rhs);
     game_state& operator=(game_state const& rhs);
-    game_state& operator=(game_state&& rhs);
+    game_state& operator=(game_state&& rhs);//move assignment
     ~game_state();
 
     uint32_t get_size() const;
