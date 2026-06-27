@@ -9,7 +9,6 @@ game_state :: game_state(){
     m_grid = nullptr;
 }
 
-
 game_state :: game_state(uint32_t s){
     m_size = 0;
     m_score = 0;
@@ -25,7 +24,7 @@ game_state :: game_state(uint32_t s){
     }
 
     //Verifichiamo di avere potenze di 2 e almeno 4
-    if(s < 4 || !( (s & (s - 1)) == 0 )) throw pacman_exception("Dimensione non valida");
+    if(s < 4 || !( (s & (s - 1)) == 0 )) throw pacman_exception("Dimensione della griglia non valida");
     
     m_size = s;
     m_grid = new cell_type*[s];//creazione dell'array nel heap
@@ -65,7 +64,7 @@ game_state::game_state(game_state&& rhs) : m_size(rhs.get_size()), m_score(rhs.g
                                                     m_lives(rhs.get_lives()), m_pellets_left(rhs.get_pellets_left()),
                                                     m_panic_countdown(rhs.get_panic_countdown())
 {
-    m_grid = rhs.m_grid; //rubo il puntatore, non alloco nuova memori, non creo nuove celle
+    m_grid = rhs.m_grid; //rubo il puntatore, non alloco nuova memoria, non creo nuove celle
     
     rhs.m_size = 0;
     rhs.m_score = 0;
@@ -75,7 +74,8 @@ game_state::game_state(game_state&& rhs) : m_size(rhs.get_size()), m_score(rhs.g
     rhs.m_grid = nullptr;
 }
 
-/*game_state::game_state(game_state&& rhs) 
+/*
+game_state::game_state(game_state&& rhs) 
     : m_size(rhs.get_size()), 
       m_score(rhs.get_score()),
       m_lives(rhs.get_lives()), 
@@ -277,17 +277,35 @@ bool game_state::win() const{
     //oppure m_pallets_left == 0;
 }
 
+
 //set_size puo essere chiamato solo se m_grid == nullptr, ritorna mm_grind[i][j] (riferimento nella versione non-const)
 void game_state::set_size(uint32_t s){
     
-    if(m_grid != nullptr) throw pacman_exception("Dimensione non valida");
+    if(m_grid != nullptr) throw pacman_exception("La griglia è già allocata");
 
     if(s == 0){
         m_size = 0;
         return;
     }
     
-    if(s < 4 || !( (s & (s - 1)) == 0 )) {
+    if(s < 4 || !((s & (s - 1)) == 0 )) {
+        throw pacman_exception("Dimensione della griglia non valida");
+    }
+
+    m_size = s;
+    m_grid = new cell_type*[s];
+    for(unsigned i = 0; i < s; i++){
+        m_grid[i] = new cell_type[s];
+        for(unsigned j = 0; j < s; ++j){
+            m_grid[i][j] = cell_type::empty; 
+        }
+    }
+}
+
+/*
+In teoria facendo cosi accetto anche le dimensioni non valide e rifiuto quelle valide,
+sarebbe un bug 
+if(s < 4 || !((s & (s - 1)) == 0 )) {
         m_size = s;
         m_grid = new cell_type*[s];
         for(unsigned i = 0; i < s; i++){
@@ -299,7 +317,7 @@ void game_state::set_size(uint32_t s){
     }else{
         throw pacman_exception("Dimensione non valida");
     }
-}
+*/
 
 void game_state::set_score(uint32_t score){
     m_score = score;
@@ -321,7 +339,7 @@ void game_state::set_panic_countdown(uint32_t panic_countdown){
 //Restituisco un riferimento
 cell_type& game_state::operator()(uint32_t i, uint32_t j){
     if(i >= m_size || j >= m_size){
-        throw pacman_exception("Dimensione non valida");
+        throw pacman_exception("Gli indici sono fuori dai limiti della griglia");
     } else {
         return m_grid[i][j];
     }
@@ -330,7 +348,7 @@ cell_type& game_state::operator()(uint32_t i, uint32_t j){
 //Restituisco un valore perchè l'oggeto è const
 cell_type game_state::operator()(uint32_t i, uint32_t j) const{
     if(i >= m_size || j >= m_size){
-        throw pacman_exception("Dimensione non valida");
+        throw pacman_exception("Gli indici sono fuori dai limiti della griglia");
     } else {
         return m_grid[i][j];
     }
@@ -387,10 +405,10 @@ void game_state::print_ascii_art(std::ostream& os) const {
 
         for(uint32_t j = 0; j < m_size; ++j){
 
-            switch(m_grid[i][j]){
+            switch((*this)(i,j)){
 
                 case cell_type::empty:
-                    os << ' ';
+                    os << '.';
                     break;
 
                 case cell_type::wall:
@@ -451,4 +469,209 @@ void game_state::print_ascii_art(std::ostream& os) const {
         os << '-';
     }
     os << "+\n";
+
+} 
+
+//Implementazione di pacman
+ 
+//Costruttore: contenitore vuoto
+pacman ::  pacman(){
+    m_size  = 0;
+    m_length = 0;
+    m_head = nullptr;
+    m_tail = nullptr;
 }
+
+//Costruttore con parametro - creare un contenitore vuoto. Controllo la correttezza del size: se è uguale 0, a una potenza di due
+//o a 4 -> OK. Altrimenti, lancio un'eccezione.
+/*
+  Recap funzione: inizializzo l'oggetto. Se la size passata come parametro è 0 -> contenitore vuoto -> fine.
+  Se la size  è diversa da zero, allora controllo la validità (ovvero se è una potenza di 2 maggiore o uguale a 4),
+  se la size non è valida lancio un'eccezione. Se size è valida assegno sizea m_size.
+*/
+pacman :: pacman(uint32_t size){
+   
+    m_size  = 0; //dimensione massima della lista
+    m_length = 0; //il numero dei nodi presenti nella lista
+    m_head = nullptr;
+    m_tail = nullptr;
+
+    //Caso size == 0 allora il contenitore è vuoto
+    if(size == 0){
+        return;
+    }
+
+    //Verifichiamo di avere potenze di 2 e almeno 4
+    if(size < 4 || !( (size & (size - 1)) == 0 )){
+        throw pacman_exception("Dimensione della griglia non valida");
+    }
+
+    //Game-size pre-set: ricevo come parametro size(es. 16), quindi la dimensione del gioco sarà size (16), percio m_size deve essere uguale a size e non a 0
+    m_size  = size; //dimensione massima della lista
+}
+
+
+//Costruttore di copia. Leggo da rhs (invece che da cin)
+/*Costruire il nuovo oggetto (this); rhs è l'oggetto da cui copio i dati, esiste già e non va modificato*/
+pacman :: pacman(pacman const& rhs) {
+     
+    //Copio la size e length, dato che sono variabili normali(int ecc) posso copiarli direttamente
+    m_size = rhs.m_size;
+    m_length = rhs.m_length;
+  
+    //Inizialmente la nuova lista è vuota, sto costruendo un nuovo oggetto
+    m_head = m_tail = nullptr;
+    
+    //Creo un puntatore per scorrere la lista. Scorro la lista per arrivare alla fine
+    node* p = rhs.m_head;
+    while(p != nullptr){
+        //Per ogni nodo di rhs -> creo un nuovo nodo
+        node* nuovo = new node();
+        nuovo -> gs = p -> gs;
+        nuovo -> next = nullptr;
+
+        //Se la lista è vuota, inserimento in testa. Altrimenti, inserimento in coda
+        if(m_head == nullptr){
+            m_head = m_tail = nuovo;
+        } else { 
+            m_tail -> next = nuovo;
+            m_tail = nuovo;
+        }
+        p = p -> next;
+    }
+}
+
+//Costruttore move (l'oggetto esiste già): qui non devo creare nuovi nodi (a differenza del costruttore di copia), ma rubo i dati e svuoto il vecchio oggetto
+pacman :: pacman(pacman&& rhs){
+
+    m_size = rhs.m_size;
+    m_length = rhs.m_length;
+    m_head = rhs.m_head;
+    m_tail = rhs.m_tail;
+
+    rhs.m_size = 0;
+    rhs.m_length = 0;
+    rhs.m_head = nullptr;
+    rhs.m_tail = nullptr;
+}
+
+//Distruttore
+pacman :: ~ pacman(){
+    node* corrente = m_head;
+    while (corrente != nullptr){
+        node* elimina = corrente;
+        corrente = corrente ->next;
+        delete elimina;
+    }
+    
+    m_head = m_tail = nullptr;
+}
+
+//Copy assignment
+//Nota: assomiglia al costruttore di copia solo che qui l'oggetto esiste già, quindi prima devo pulire la lista vecchia e poi copiare
+pacman& pacman::operator=(pacman const& rhs){
+    //Self assignment, se sto copiando me stesso faccio return subito
+    if(this == &rhs) return *this;
+
+    //Se non si verifica self-assignment, procedo eliminando la vecchia lista
+    node* corrente = m_head;
+    while (corrente != nullptr){
+        node* elimina = corrente;
+        corrente = corrente ->next;
+        delete elimina;
+    }
+
+    /*Dopo aver cancellato tutti i nodi, m_head contiene ancora l'indirizzo ldel primo nodo
+    ma esso non esiste piu, è corretto inizzalizzare tutto a nullptr*/
+    m_head = m_tail = nullptr;
+
+    //Copio i dati semplici (ovvero m_size e m_length)
+    m_size = rhs.m_size;
+    m_length = rhs.m_length;
+
+    //Ricostruzione di una nuova lista (uguale a come ho fatto nel costruttore di copia)
+    //Creo un puntatore per scorrere la lista. Scorro la lista per arrivare alla fine
+    node* p = rhs.m_head;
+    while(p != nullptr){
+        //Per ogni nodo di rhs -> creo un nuovo nodo
+        node* nuovo = new node();
+        nuovo -> gs = p -> gs;
+        nuovo -> next = nullptr;
+
+        //Se la lista è vuota, inserimento in testa. Altrimenti, inserimento in coda
+        if(m_head == nullptr){
+            m_head = m_tail = nuovo;
+        } else { 
+            m_tail -> next = nuovo;
+            m_tail = nuovo;
+        }
+        p = p -> next;
+    }
+
+    return *this;
+}
+
+
+//Move assignment. Frees the current history and steals rhs's.
+pacman& pacman::operator=(pacman&& rhs){
+
+    if(this == &rhs){
+        return *this;
+    }
+
+    node* corrente = m_head;
+    while (corrente != nullptr){
+        node* elimina = corrente;
+        corrente = corrente ->next;
+        delete elimina;
+    }
+
+    //Azzero i puntatori
+    m_head = m_tail = nullptr;
+
+    //Rubo i dati, divento 'io' il proprietario dell'oggeto
+    m_size = rhs.m_size;
+    m_length = rhs.m_length;
+    m_head = rhs.m_head;
+    m_tail = rhs.m_tail;
+
+    //Svuoto rhs, diventa oggetto vuoto. 
+    rhs.m_size = 0;
+    rhs.m_length = 0;
+    rhs.m_head = nullptr;
+    rhs.m_tail = nullptr;
+
+    return *this;
+}
+
+//Getters
+uint32_t pacman:: size() const{
+    return m_size;
+}
+
+uint32_t pacman:: length() const{
+    return m_length;
+}
+
+bool pacman:: empty()  const{
+    return m_length == 0;
+}
+
+//Primo snapshot della cronologia
+game_state const& pacman::front() const{
+    if(m_length == 0){
+        throw pacman_exception("Il contenitore è vuoto");
+    }
+    return m_head->gs;
+}  
+
+
+//L'ultimo snapshot della cronologia, all'interno del nodo ho il game state
+game_state const& pacman::back() const{
+    if(m_length == 0){
+        throw pacman_exception("Il contenitore è vuoto");
+    }
+    return m_tail->gs;
+}  
+
+

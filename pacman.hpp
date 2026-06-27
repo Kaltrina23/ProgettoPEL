@@ -7,6 +7,7 @@
 #include <chrono>
 #include<sstream>
 
+
 #pragma once
 constexpr uint32_t PANIC_RESET = 80;
 
@@ -69,6 +70,7 @@ private:
     cell_type** m_grid;
 };
 
+//Ancora da complementare
 std::ostream& operator<<(std::ostream& os, game_state const& gs);
 std::istream& operator>>(std::istream& is, game_state& gs);
 
@@ -87,12 +89,12 @@ public:
     pacman& operator=(pacman&& rhs);
     ~pacman();
 
-    uint32_t size() const;
+    uint32_t size() const; //arrivare fino a qui FATTO
     uint32_t length() const;
     bool empty() const;
 
     game_state const& front() const;
-    game_state const& back() const;
+    game_state const& back() const; //Sono arrivata qui
 
     bool operator==(pacman const& rhs) const;
     bool operator!=(pacman const& rhs) const;
@@ -146,8 +148,8 @@ public:
     void print_ascii_art(std::ostream& os) const;
 
 private:
-    uint32_t m_size;
-    uint32_t m_length;
+    uint32_t m_size;//dimensione griglia
+    uint32_t m_length;//dimensione lista
     node* m_head;
     node* m_tail;
 };
