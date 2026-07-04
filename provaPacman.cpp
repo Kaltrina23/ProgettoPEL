@@ -674,4 +674,46 @@ game_state const& pacman::back() const{
     return m_tail->gs;
 }  
 
+/*Due oggetto pacman rappresentano la stessa cronologia
+Confronto due liste e restituisco true sono nel caso di size uguale, length uguale e tutti game_state uguali
+*/
+
+bool pacman :: operator==(pacman const& rhs) const{
+
+
+    if(m_size != rhs.m_size || m_length != rhs.m_length){
+        return false;
+    }
+
+    //Per rendere il codice piu coerente con la firma della fuzione, uso const,
+    //visto che semplicemente leggo il dei nodi delle liste.
+    //l1 e l2 sono spuntatori per scorere la lista 
+    node const* l1 = m_head;
+    node const* l2 = rhs.m_head;
+
+    /*Posso usare l'operatore '!=' perche l1->gs e l2->gs sono game_state e quindi quando compilo,
+    il compilatore cera la funzione game_state::operator!=(game_state const&)*/
+    while(l1 != nullptr && l2 != nullptr){
+        if(l1->gs != l2->gs){
+            return false;
+        }
+        l1 = l1->next;
+        l2 = l2->next;
+    }
+
+    //Verifico se i due puntatori abbiano raggiunto la fine della lista
+    if(l1 != nullptr || l2 != nullptr){
+        return false;
+    }
+
+    return true;
+}
+
+/*Con *this == rhs -> chiamo l'operatore==. Accade che (*this).operatore==(rhs): restituisce
+true se i due pacman sono uguali e false se sono diversi. con coperatore ! inverto il risultato:$
+se == mi restituisce true  allora ! è false -> l'operatore != significa che i due oggetti sono uguale, 
+mentre se == mi restituisce false, ! è true -> l'operatore!= significa che i due oggetti sono diversi*/
+bool pacman :: operator!=(pacman const& rhs) const{
+    return !(*this == rhs);
+}
 

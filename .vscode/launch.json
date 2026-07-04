@@ -1,19 +1,31 @@
 {
-   
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Pacman",
+            "name": "Debug Pacman (GCC 16)",
             "type": "cppdbg",
             "request": "launch",
+
             "program": "${workspaceFolder}\\main.exe",
+
             "args": [],
+
             "stopAtEntry": false,
+
             "cwd": "${workspaceFolder}",
-            "environment": [],
+
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "C:\\msys64\\clang64\\bin;${env:PATH}"
+                }
+            ],
+
             "externalConsole": false,
+
             "MIMode": "gdb",
-            "miDebuggerPath": "C:\\MinGW\\bin\\gdb.exe",
+
+            "miDebuggerPath": "C:\\msys64\\clang64\\bin\\gdb.exe",
             "preLaunchTask": "Build Pacman"
         }
     ]

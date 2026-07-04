@@ -352,6 +352,11 @@ int main() {
     }
 
     std::cout << "OK\n";
+    
+    int* p = new int(5);
+    delete p;
+
+    std::cout << *p << std::endl;
 
     return 0;
 }

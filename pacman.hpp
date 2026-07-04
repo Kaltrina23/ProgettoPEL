@@ -94,10 +94,10 @@ public:
     bool empty() const;
 
     game_state const& front() const;
-    game_state const& back() const; //Sono arrivata qui
+    game_state const& back() const; 
 
     bool operator==(pacman const& rhs) const;
-    bool operator!=(pacman const& rhs) const;
+    bool operator!=(pacman const& rhs) const; //Arrivata qui 01/07
 
     struct iterator {
         using iterator_category = std::forward_iterator_tag;

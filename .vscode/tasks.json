@@ -4,18 +4,28 @@
         {
             "label": "Build Pacman",
             "type": "shell",
-            "command": "C:\\MinGW\\bin\\g++.exe",
+            "command": "C:\\msys64\\clang64\\bin\\clang++.exe",
             "args": [
                 "-std=c++17",
                 "-Wall",
+                "-Wextra",
+                "-pedantic",
+                "-O0",
                 "-g",
+                "-fno-omit-frame-pointer",
+                "-fsanitize=address",
                 "main.cpp",
                 "provaPacman.cpp",
                 "-o",
                 "main.exe"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
             },
             "group": {
                 "kind": "build",
