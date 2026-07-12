@@ -89,7 +89,7 @@ public:
     pacman& operator=(pacman&& rhs);
     ~pacman();
 
-    uint32_t size() const; //arrivare fino a qui FATTO
+    uint32_t size() const; //FATTO
     uint32_t length() const;
     bool empty() const;
 
@@ -106,11 +106,11 @@ public:
         using pointer = game_state*;
 
         iterator(node* ptr);
-        reference operator*();
-        pointer operator->();
-        iterator& operator++();
-        iterator operator++(int);
-        bool operator==(iterator const& rhs) const;
+        reference operator*();//restituisce reference all'oggetto (restituire il game state)
+        pointer operator->(); //puntatore all'oggetto del nodo, al game state (l'indizzo di memoria del oggetto), estarrre l'indirizzo di memoria di gs a cui sta punatanto da ptr
+        iterator& operator++(); 
+        iterator operator++(int);//iteratore tmp creato con this, incremento this e poi restituisco int 
+        bool operator==(iterator const& rhs) const;//due iteratori restituiscono true se puntano allo stesso nodo
         bool operator!=(iterator const& rhs) const;
 
     private:
@@ -135,6 +135,7 @@ public:
         node const* m_ptr;
     };
 
+    
     iterator begin();
     iterator end();
     const_iterator begin() const;

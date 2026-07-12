@@ -1,5 +1,7 @@
 #include "pacman.hpp"
 
+
+//IMPLEMENTAZIONE GAME_STATE
 game_state :: game_state(){
     m_size = 0;
     m_score = 0;
@@ -101,7 +103,7 @@ game_state crea_stato() {
 //Copy assignment: viene liberata prima la griglia corrente
 game_state& game_state::operator=(game_state const& rhs){
 
-    if(this == &rhs) return *this; //*this esisite già e dobbiamo liberarla perchè potrebbe avere una graigli allocata. sef-assigemnet(gs = gs), non succede nulla
+    if(this == &rhs) return *this; //*this esisite già e dobbiamo liberarla perchè potrebbe avere una griglia allocata. sef-assigemnet(gs = gs), non succede nulla
     
     //Liberare la griglia attuale, inizio eliminando ogni riga della griglia e poi elimino m_grind 
     if(m_grid != nullptr){
@@ -242,6 +244,7 @@ game_state& game_state::operator=(game_state&& rhs){
 
 //Distruttore
 game_state ::~game_state(){
+
     if(m_grid != nullptr){
         for(unsigned i = 0; i < m_size; i++){
             delete[] m_grid[i];
@@ -302,22 +305,6 @@ void game_state::set_size(uint32_t s){
     }
 }
 
-/*
-In teoria facendo cosi accetto anche le dimensioni non valide e rifiuto quelle valide,
-sarebbe un bug 
-if(s < 4 || !((s & (s - 1)) == 0 )) {
-        m_size = s;
-        m_grid = new cell_type*[s];
-        for(unsigned i = 0; i < s; i++){
-            m_grid[i] = new cell_type[s];
-            for(unsigned j = 0; j < s; ++j){
-                m_grid[i][j] = cell_type::empty; 
-            }
-        }
-    }else{
-        throw pacman_exception("Dimensione non valida");
-    }
-*/
 
 void game_state::set_score(uint32_t score){
     m_score = score;
@@ -338,6 +325,7 @@ void game_state::set_panic_countdown(uint32_t panic_countdown){
 //Operatore ()
 //Restituisco un riferimento
 cell_type& game_state::operator()(uint32_t i, uint32_t j){
+
     if(i >= m_size || j >= m_size){
         throw pacman_exception("Gli indici sono fuori dai limiti della griglia");
     } else {
@@ -347,6 +335,7 @@ cell_type& game_state::operator()(uint32_t i, uint32_t j){
 
 //Restituisco un valore perchè l'oggeto è const
 cell_type game_state::operator()(uint32_t i, uint32_t j) const{
+
     if(i >= m_size || j >= m_size){
         throw pacman_exception("Gli indici sono fuori dai limiti della griglia");
     } else {
@@ -380,7 +369,7 @@ bool game_state::operator!=(game_state const& rhs) const{
 }
 /*
 *this == rhs
-Questa espressione chiama il tuo operator==:
+Questa espressione chiama  l'operator==:
 (*this).operator==(rhs) che è equivalente a: a == b*/
 
 
@@ -471,8 +460,9 @@ void game_state::print_ascii_art(std::ostream& os) const {
     os << "+\n";
 
 } 
+/*--------------------------------Fine implementazione game_state-----------------------------------*/
 
-//Implementazione di pacman
+//IMPLEMENTAZIONE DI PACMAN
  
 //Costruttore: contenitore vuoto
 pacman ::  pacman(){
@@ -570,6 +560,7 @@ pacman :: ~ pacman(){
 //Copy assignment
 //Nota: assomiglia al costruttore di copia solo che qui l'oggetto esiste già, quindi prima devo pulire la lista vecchia e poi copiare
 pacman& pacman::operator=(pacman const& rhs){
+    
     //Self assignment, se sto copiando me stesso faccio return subito
     if(this == &rhs) return *this;
 
@@ -629,7 +620,7 @@ pacman& pacman::operator=(pacman&& rhs){
     //Azzero i puntatori
     m_head = m_tail = nullptr;
 
-    //Rubo i dati, divento 'io' il proprietario dell'oggeto
+    //Rubo i dati, divento 'io' il proprietario dell'oggetto
     m_size = rhs.m_size;
     m_length = rhs.m_length;
     m_head = rhs.m_head;
@@ -659,6 +650,7 @@ bool pacman:: empty()  const{
 
 //Primo snapshot della cronologia
 game_state const& pacman::front() const{
+
     if(m_length == 0){
         throw pacman_exception("Il contenitore è vuoto");
     }
@@ -668,18 +660,19 @@ game_state const& pacman::front() const{
 
 //L'ultimo snapshot della cronologia, all'interno del nodo ho il game state
 game_state const& pacman::back() const{
+
     if(m_length == 0){
         throw pacman_exception("Il contenitore è vuoto");
     }
     return m_tail->gs;
 }  
 
-/*Due oggetto pacman rappresentano la stessa cronologia
+/*
+Due oggetto pacman rappresentano la stessa cronologia
 Confronto due liste e restituisco true sono nel caso di size uguale, length uguale e tutti game_state uguali
 */
 
 bool pacman :: operator==(pacman const& rhs) const{
-
 
     if(m_size != rhs.m_size || m_length != rhs.m_length){
         return false;
@@ -715,5 +708,160 @@ se == mi restituisce true  allora ! è false -> l'operatore != significa che i d
 mentre se == mi restituisce false, ! è true -> l'operatore!= significa che i due oggetti sono diversi*/
 bool pacman :: operator!=(pacman const& rhs) const{
     return !(*this == rhs);
+}
+
+/*--------------------------------------Fine implementazione Pacman---------------------------------------------*/
+
+//IMPLEMENTAZIONE DEGLI ITERATORI
+pacman :: iterator :: iterator(node* ptr){
+    m_ptr = ptr;
+}
+
+pacman :: iterator :: reference pacman ::  iterator ::  operator*(){
+
+   if(m_ptr == nullptr) throw pacman_exception{"Deferenzziazione dell'iteratore nullo"};
+    return m_ptr -> gs; 
+
+}
+
+//L'operatore -> mi restituisce il puntatore all'elemento a cui l'iteratore fa riferimento, ovvero al gs (game state)
+pacman :: iterator :: pointer pacman:: iterator :: operator->(){
+
+    if(m_ptr == nullptr) throw pacman_exception{"Punta all'iteratore nullo"};
+    return &(m_ptr -> gs); //qui mi viene restituito l'indirizzo di memoria  dell'oggetto gs contenuto nel nodo
+}
+
+//++i
+pacman :: iterator& pacman :: iterator :: operator++(){
+
+    if(m_ptr != nullptr) m_ptr = m_ptr -> next;
+    return *this; //retituisco me stesso
+
+}
+
+//i++
+pacman :: iterator pacman :: iterator :: operator++(int){
+
+    iterator temp = *this;//creo iteratore temp. perchè devo restituire un iteratore
+    ++(*this);
+    return temp; //restituisco m_ptr prima dell'incremento
+}
+
+bool  pacman :: iterator:: operator==(iterator const& rhs) const{
+
+    if(m_ptr != rhs.m_ptr) return false;
+    return true;
+}
+
+bool  pacman :: iterator:: operator!=(iterator const& rhs) const{
+    return !(m_ptr == rhs.m_ptr);
+}
+
+
+//IMPLEMENTAZIONE ITERATORI CONST
+
+pacman :: const_iterator :: const_iterator(node const* ptr){
+    m_ptr = ptr;
+}
+
+pacman :: const_iterator :: reference pacman ::  const_iterator ::  operator*() const{
+
+    if(m_ptr == nullptr) throw pacman_exception{"Tentativo di deferenziare un iteratore nullo"};
+    return m_ptr -> gs; 
+}
+
+pacman :: const_iterator :: pointer pacman:: const_iterator :: operator->() const{
+
+    if(m_ptr == nullptr) throw pacman_exception{"Tentativo di accedere a un gs tarmite un iteratore nullo"};
+    return &(m_ptr -> gs);
+}
+
+//++i
+pacman :: const_iterator& pacman :: const_iterator :: operator++(){
+
+    if(m_ptr != nullptr) m_ptr = m_ptr -> next;
+    return *this; //retituisco me stesso
+}
+
+//i++
+pacman :: const_iterator pacman :: const_iterator :: operator++(int){
+
+    const_iterator temp = *this;//creo iteratore temp. perchè devo restituire un iteratore
+    ++(*this);
+    return temp; //restituisco m_ptr prima dell'incremento
+}
+
+bool  pacman :: const_iterator:: operator==(const_iterator const& rhs) const{
+
+    if(m_ptr != rhs.m_ptr) return false;
+    return true;
+}
+
+bool  pacman :: const_iterator:: operator!=(const_iterator const& rhs) const{
+    return !(m_ptr == rhs.m_ptr);
+}
+
+//Implementazione di iterator begin();  e iterator end();
+
+//Restituisco un iteratore che punta all'inizio della lista pacman
+pacman :: iterator pacman ::  begin(){
+
+    iterator it = iterator(m_head);
+    return it;
+}
+
+//Restitusco un iteratore che punta all'alla fine della lista pacman (fine = coda)
+pacman :: iterator pacman :: end(){
+
+    iterator it = iterator(m_tail);
+    return it;
+}
+
+//Implementazione di const_iterator begin() const; e const_iterator end() const;
+pacman :: const_iterator pacman ::  begin() const{
+
+    const_iterator it = const_iterator(m_head);
+    return it;
+}
+
+pacman :: const_iterator pacman :: end() const{
+
+    const_iterator it = const_iterator(m_tail);
+    return it;
+}
+
+
+//----------------------------------------Fine implementazione degli iteratori------------------------------------------
+
+void pacman :: push_back(game_state const& gs){
+
+    uint32_t s = gs.get_size();//ho dimensione della griglia 
+
+    if(m_length != 0){
+        if(s != m_size){
+            throw pacman_exception{"Dimensione della griglia diversa da pacman"};
+        }
+    }
+
+    if(s > 0){
+        if(gs(0,0) == cell_type :: wall || gs(s - 1, 0) == cell_type :: wall ||  gs(0, s -1) == cell_type :: wall ||  gs(s - 1 , s-1) == cell_type :: wall ||  gs(s/2, s/2) == cell_type :: wall){
+            throw pacman_exception {"Wall trovato"}; //migliora la descrizione
+        }
+    }
+    
+
+    node* new_node = new node {gs, nullptr};
+
+    if(m_head == nullptr){
+       m_head = m_tail = new_node;
+       m_length++;
+    } else {
+        m_tail -> next = new_node;
+        new_node -> next = nullptr;
+        m_tail = new_node;
+        m_length++;
+    }
+
+
 }
 
