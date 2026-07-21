@@ -14,18 +14,14 @@
                 "-g",
                 "-fno-omit-frame-pointer",
                 "-fsanitize=address",
+                "-fsanitize=undefined",
                 "main.cpp",
                 "provaPacman.cpp",
                 "-o",
                 "main.exe"
             ],
             "options": {
-            "cwd": "${workspaceFolder}"
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "clear": true
+                "cwd": "${workspaceFolder}"
             },
             "group": {
                 "kind": "build",
@@ -35,5 +31,5 @@
                 "$gcc"
             ]
         }
-    ] 
+    ]
 }

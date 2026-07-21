@@ -352,6 +352,8 @@ bool game_state::operator==(game_state const& rhs) const{
             return false;
     }
 
+    //if(m_grid == nullptr || rhs.m_grid == nullptr){ return m_grid == rhs.m_grid;}
+
     if (m_grid == nullptr && rhs.m_grid == nullptr) return true;
 
     for(unsigned i = 0; i < m_size; i++){
@@ -814,8 +816,9 @@ pacman :: iterator pacman ::  begin(){
 //Restitusco un iteratore che punta all'alla fine della lista pacman (fine = coda)
 pacman :: iterator pacman :: end(){
 
-    iterator it = iterator(m_tail);
-    return it;
+    //iterator it = iterator(m_tail);
+    //return it;
+    return iterator(nullptr);
 }
 
 //Implementazione di const_iterator begin() const; e const_iterator end() const;
@@ -827,8 +830,9 @@ pacman :: const_iterator pacman ::  begin() const{
 
 pacman :: const_iterator pacman :: end() const{
 
-    const_iterator it = const_iterator(m_tail);
-    return it;
+    //const_iterator it = const_iterator(m_tail);
+    //return it;
+    return const_iterator(nullptr);
 }
 
 
@@ -869,18 +873,22 @@ void pacman :: push_back(game_state const& gs){
 
 void pacman :: move(cell_type who, int delta_i, int delta_j){
 
-
     /*Invalid move(...) arguments. move() throws pacman_exception if the history is empty, if who is not one of pacman, ghost1, ghost2, ghost3, ghost4, 
     if (delta_i, delta_j) is not a unit cardinal step, or if who is not present on the grid of the last state.*/
-
-    //Controllo se i valori di delta_i e delta_j sono validi, le mosse consentite sono (-1,0) || (1,0) || (0,-1) || (0,1)
-    if(!((delta_i == -1 && delta_j == 0) || (delta_i == 1  && delta_j == 0) || (delta_i == 0  && delta_j == -1) || (delta_i == 0  && delta_j == 1))) {
-        throw pacman_exception{"La direzione non è valida"}; //es. (1,1) o (2,0) o (0,0)
-    }
-
+    
     //Cronologia vuota: lancio eccezione
     if(m_length ==  0){
         throw pacman_exception{"La coronologia è vuota"};
+    }
+
+    //Capire se è necessario?
+    if(who != cell_type::pacman && who != cell_type::ghost1 && who != cell_type::ghost2 && who != cell_type::ghost3 && who != cell_type::ghost4){
+        throw pacman_exception{"Who non è uno dei seguenti personaggio: pacman, ghost1, ghost2, ghost3, ghost4"};
+    }
+
+    //Controllo se i valori di delta_i e delta_j sono validi, le mosse consentite sono (-1,0) || (1,0) || (0,-1) || (0,1)
+    if(!((delta_i == -1 && delta_j == 0) || (delta_i == 1  && delta_j == 0) || (delta_i == 0  && delta_j == -1) || (delta_i == 0  && delta_j == 1))) {
+        throw pacman_exception{"La direzione non è valida"}; //es. se mi passano (1,1) o (2,0) o (0,0)
     }
 
     //Prendo l'ultimo game_state e creo una copia di esso, modifico la copia e infine la inserisco nella croologia con push_back()
@@ -891,7 +899,7 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
     uint32_t score = nuovo_stato.get_score();
     uint32_t  panic_mode_timer = nuovo_stato.get_panic_countdown();
     //Ad ogni move decremento il panic_countdown
-    if(panic_mode_timer > 0){
+    if(panic_mode_timer > 0){//
         panic_mode_timer--;
         nuovo_stato.set_panic_countdown(panic_mode_timer);
     }
@@ -914,11 +922,6 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
         }
     }
     
-    //Capire se è necessario?
-    if(who != cell_type::pacman && who != cell_type::ghost1 && who != cell_type::ghost2 && who != cell_type::ghost3 && who != cell_type::ghost4){
-        throw pacman_exception{"Who non è uno dei seguenti personaggio: pacman, ghost1, ghost2, ghost3, ghost4"};
-    }
-
     if (!personaggio) {
         throw pacman_exception{"Personaggio non presente nella griglia"};
     }
@@ -987,6 +990,7 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
             nuovo_stato(nuova_riga, nuova_colonna) = who;
             push_back(nuovo_stato);
             return;
+        }
     }
     
     //Pac-Man / ghost contact.
@@ -996,34 +1000,20 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
 
     /*Pac-Man / ghost contact. If a move would cause Pac-Man and a ghost to share a cell -- whether Pac-Man moved into the ghost or the ghost moved into Pac-Man -- the outcome depends on the mode:*/
     if(who == cell_type:: pacman){
+
         if(contenuto_cella == cell_type::ghost1 || contenuto_cella == cell_type::ghost2 || contenuto_cella == cell_type::ghost3 || contenuto_cella == cell_type::ghost4){
-            if(panic_mode_timer == 0){
-                lives_pacman --;
+            if(panic_mode_timer <= 0){//aggiungere un assert caso < 0
+                if(lives_pacman > 0){
+                    lives_pacman--;
+                }
                 nuovo_stato.set_lives(lives_pacman);
                 nuovo_stato(riga, colonna) = cell_type::empty;//setto la poszione vecchia a empty
                 //Ottengo le coordinate del centro, es. griglia 16x16: 16/2 = 8, il centro è (8, 8)
                 int riga_centro = size_griglia/2; 
                 int colonna_centro = size_griglia/2;
                 cell_type  centro = nuovo_stato(riga_centro, colonna_centro);
-                //Controllo contenuto della cella in centro
-                if(centro == cell_type::empty){
-                    nuovo_stato(riga_centro, colonna_centro) = cell_type::pacman;
-                }else if(centro == cell_type::pellet){
-                    pallets_left--;
-                    nuovo_stato.set_pellets_left(pallets_left);
-                    score += 10;
-                    nuovo_stato.set_score(score);
-                    nuovo_stato(riga_centro, colonna_centro) = cell_type::pacman;
-                }else if(centro == cell_type::power_pellet){
-                    pallets_left--;
-                    nuovo_stato.set_pellets_left(pallets_left);
-                    score += 50;
-                    nuovo_stato.set_score(score);
-                    nuovo_stato.set_panic_countdown(PANIC_RESET);
-                    nuovo_stato(riga_centro, colonna_centro) = cell_type::pacman;
-                }
 
-                //Ricerca dei ghost
+                //Ricerca dei ghost -> riposizionamento
                 /*Se un fantasma è stato mangiato durante una panic mode, non sarà più presente nella griglia.
                 Quindi: il ciclo non lo trova; ghost_trovato rimane false; il blocco if(ghost_trovato) non viene eseguito; il fantasma non viene rimesso nell'angolo.*/
                 for(uint32_t i = 0; i < nuovo_stato.get_size() && !ghost_trovato; i++){
@@ -1046,12 +1036,13 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
                     } else if(nuovo_stato(0,0) == cell_type::power_pellet){
                         nuovo_stato(riga_g, colonna_g) = cell_type::power_pellet;
                         nuovo_stato(0, 0) = cell_type::ghost1;
+                    }else{//else: se trovo un ghost switch posizione
+                        cell_type tmp = nuovo_stato(0,0);
+                        nuovo_stato(0,0) = cell_type::ghost1;
+                        nuovo_stato(riga_g, colonna_g) = tmp;
                     }
                 }
                 ghost_trovato = false;
-                //Risetto le coordinate
-                riga_g = 0;
-                colonna_g = 0;
 
                 for(uint32_t i = 0; i < nuovo_stato.get_size() && !ghost_trovato; i++){
                     for(uint32_t j = 0; j < nuovo_stato.get_size() && !ghost_trovato; j++){
@@ -1073,12 +1064,15 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
                     } else if(nuovo_stato(0,size_griglia-1) == cell_type::power_pellet){
                         nuovo_stato(riga_g, colonna_g) = cell_type::power_pellet;
                         nuovo_stato(0, size_griglia-1) = cell_type::ghost2;
+                    } else {//else: se trovo un ghost switch posizione
+                        cell_type tmp = nuovo_stato(0,size_griglia-1);
+                        nuovo_stato(0,size_griglia-1) = cell_type::ghost2;
+                        nuovo_stato(riga_g, colonna_g) = tmp;
                     }
                 }
                 ghost_trovato = false;
-                riga_g = 0;
-                colonna_g = 0;
-
+        
+                //Risposiziono il ghost
                 for(uint32_t i = 0; i < nuovo_stato.get_size() && !ghost_trovato; i++){
                     for(uint32_t j = 0; j < nuovo_stato.get_size() && !ghost_trovato; j++){
                         if(nuovo_stato(i, j) == cell_type::ghost3){
@@ -1099,11 +1093,14 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
                     } else if(nuovo_stato(size_griglia-1,0) == cell_type::power_pellet){
                         nuovo_stato(riga_g, colonna_g) = cell_type::power_pellet;
                         nuovo_stato(size_griglia-1, 0) = cell_type::ghost3;
+                    } else {//else: se trovo un ghost switch posizione
+                        cell_type tmp = nuovo_stato(size_griglia-1, 0);
+                        nuovo_stato(size_griglia-1, 0) = cell_type::ghost3;
+                        nuovo_stato(riga_g, colonna_g) = tmp;
                     }
                 }
                 ghost_trovato = false;
-                riga_g = 0;
-                colonna_g = 0;
+            
 
                 for(uint32_t i = 0; i < nuovo_stato.get_size() && !ghost_trovato; i++){
                     for(uint32_t j = 0; j < nuovo_stato.get_size() && !ghost_trovato; j++){
@@ -1125,13 +1122,36 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
                     } else if(nuovo_stato(size_griglia-1,size_griglia-1) == cell_type::power_pellet){
                         nuovo_stato(riga_g, colonna_g) = cell_type::power_pellet;
                         nuovo_stato(size_griglia-1,size_griglia-1) = cell_type::ghost4;
+                    } else {//else: se trovo un ghost switch posizione
+                        cell_type tmp = nuovo_stato(size_griglia-1, size_griglia-1);
+                        nuovo_stato(size_griglia-1, size_griglia-1) = cell_type::ghost4;
+                        nuovo_stato(riga_g, colonna_g) = tmp;
                     }
                 }
                 ghost_trovato = false;
+                
+
+                //Controllo contenuto della cella in centro
+                if(centro == cell_type::empty){
+                }else if(centro == cell_type::pellet){
+                    pallets_left--;
+                    nuovo_stato.set_pellets_left(pallets_left);
+                    score += 10;
+                    nuovo_stato.set_score(score);
+                }else if(centro == cell_type::power_pellet){
+                    pallets_left--;
+                    nuovo_stato.set_pellets_left(pallets_left);
+                    score += 50;
+                    nuovo_stato.set_score(score);
+                    panic_mode_timer = PANIC_RESET;
+                    nuovo_stato.set_panic_countdown(panic_mode_timer);
+                }//caso limite ghost in centro, riposizionare nuovo_stato(riga_centro, colonna_centro) = cell_type::pacman;fuori if, prima riposizioni i ghost e poi controllo centro
+                
+                nuovo_stato(riga_centro, colonna_centro) = cell_type::pacman;
                 push_back(nuovo_stato);
                 return;
-
-            }else if(panic_mode_timer > 0){
+              
+            }else{ //panic_mode_timer > 0
                 int nr_ghost = 0; 
                 for(uint32_t i = 0; i < nuovo_stato.get_size(); i++){
                     for(uint32_t j = 0; j < nuovo_stato.get_size(); j++){
@@ -1146,64 +1166,86 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
                         }
                     }
                 }
-
-                if(nr_ghost == 4){
+                int ghost_presenti = 5 - nr_ghost;
+                if(ghost_presenti  == 1){
                     score += 200;
                     nuovo_stato.set_score(score);
-                }else if(nr_ghost == 3){
+                }else if(ghost_presenti == 2){
                     score += 400;
                     nuovo_stato.set_score(score);
-                }else if(nr_ghost == 2){
+                }else if(ghost_presenti == 3){
                     score += 800;
                     nuovo_stato.set_score(score);
-                }else if(nr_ghost == 1){
+                }else if(ghost_presenti == 4){
                     score += 1600;
                     nuovo_stato.set_score(score);
                 }
                 nuovo_stato(riga, colonna) = cell_type::empty;//elimino pacman dalla vecchia posizione -> la cella diventa vuota
                 nuovo_stato(nuova_riga, nuova_colonna) = cell_type::pacman;//pacman entra nella poszione del fantasma, cosi il fantasma sprisce automaticamente
-                
+                nuovo_stato.set_panic_countdown(panic_mode_timer);
+                push_back(nuovo_stato);
+                return;
+            }
+
+    } else {
+            //Moviemento  normale di pac-man
+             /*Gestione personaggio pacman: per prima verifico il contenuto della cella di destinazione.
+                Se la cella di destinazione è: vuota -> non succede nulla, semplicemente mi sposto; 
+                è pellet: mangio il pellet, aggiorno il numero di pellet rimasti e aggiorno lo score; ecc.
+                Devo prima liberare la cella attuale di pacman e poi assegnare alla cella di destinazione 
+                pacman
+                */
+            if(contenuto_cella == cell_type::empty){
+                nuovo_stato(riga, colonna) = cell_type::empty;
+                nuovo_stato(nuova_riga, nuova_colonna) = cell_type::pacman;
+                nuovo_stato.set_panic_countdown(panic_mode_timer);
+                push_back(nuovo_stato);
+                return;
+            }else if(contenuto_cella == cell_type::pellet){
+                nuovo_stato(riga, colonna) = cell_type::empty;
+                nuovo_stato(nuova_riga, nuova_colonna) = cell_type::pacman;
+                pallets_left--;
+                nuovo_stato.set_pellets_left(pallets_left);
+                score += 10;
+                nuovo_stato.set_score(score);
+                nuovo_stato.set_panic_countdown(panic_mode_timer);
+                push_back(nuovo_stato);
+                return;
+            }else if(contenuto_cella == cell_type::power_pellet){
+                nuovo_stato(riga, colonna) = cell_type::empty;
+                nuovo_stato(nuova_riga, nuova_colonna) = cell_type::pacman;
+                pallets_left--;
+                nuovo_stato.set_pellets_left(pallets_left);
+                score += 50;
+                nuovo_stato.set_score(score);
+                panic_mode_timer = PANIC_RESET;
+                nuovo_stato.set_panic_countdown(panic_mode_timer);
                 push_back(nuovo_stato);
                 return;
             }
         }
-
 
     }else if(who == cell_type::ghost1 || who == cell_type::ghost2 || who == cell_type::ghost3 || who == cell_type::ghost4){
         //Se il ghost si sposta in una cella vuota, rimane in quella cella
         if(contenuto_cella == cell_type::empty){
             nuovo_stato(riga, colonna) = cell_type::empty;
             nuovo_stato(nuova_riga, nuova_colonna) = who;
+            nuovo_stato.set_panic_countdown(panic_mode_timer);
             push_back(nuovo_stato);
             return;
         }
 
         if(contenuto_cella ==  cell_type::pacman){
             if(panic_mode_timer == 0){
-                lives_pacman = lives_pacman - 1;
+                if(lives_pacman > 0){
+                    lives_pacman--;
+                }
                 nuovo_stato.set_lives(lives_pacman);
                 nuovo_stato(riga, colonna) = cell_type::empty; //Tolgo il ghost dalla vecchia posizione
                 nuovo_stato(nuova_riga, nuova_colonna) = cell_type::empty; //Elimino Pac-Man dalla cella dove ghost e pacman si sono incontrati, ovvero cella di destinazione
                 int riga_centro = size_griglia/2; 
                 int colonna_centro = size_griglia/2;
                 cell_type  centro = nuovo_stato(riga_centro, colonna_centro); //Rimetto pacman in centro
-                //Controllo contenuto della cella in centro
-                if(centro == cell_type::empty){
-                    nuovo_stato(riga_centro, colonna_centro) = cell_type::pacman;
-                }else if(centro == cell_type::pellet){
-                    pallets_left--;
-                    nuovo_stato.set_pellets_left(pallets_left);
-                    score += 10;
-                    nuovo_stato.set_score(score);
-                    nuovo_stato(riga_centro, colonna_centro) = cell_type::pacman;
-                }else if(centro == cell_type::power_pellet){
-                    pallets_left--;
-                    nuovo_stato.set_pellets_left(pallets_left);
-                    score += 50;
-                    nuovo_stato.set_score(score);
-                    nuovo_stato.set_panic_countdown(PANIC_RESET);
-                    nuovo_stato(riga_centro, colonna_centro) = cell_type::pacman;
-                }
 
                 for(uint32_t i = 0; i < nuovo_stato.get_size() && !ghost_trovato; i++){
                     for(uint32_t j = 0; j < nuovo_stato.get_size() && !ghost_trovato; j++){
@@ -1225,11 +1267,13 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
                     } else if(nuovo_stato(0,0) == cell_type::power_pellet){
                         nuovo_stato(riga_g, colonna_g) = cell_type::power_pellet;
                         nuovo_stato(0, 0) = cell_type::ghost1;
+                    } else{//else: se trovo un ghost switch posizione
+                        cell_type tmp = nuovo_stato(0,0);
+                        nuovo_stato(0,0) = cell_type::ghost1;
+                        nuovo_stato(riga_g, colonna_g) = tmp;
                     }
                 }
                 ghost_trovato = false;
-                riga_g = 0;
-                colonna_g = 0;
 
                 for(uint32_t i = 0; i < nuovo_stato.get_size() && !ghost_trovato; i++){
                     for(uint32_t j = 0; j < nuovo_stato.get_size() && !ghost_trovato; j++){
@@ -1251,11 +1295,13 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
                     } else if(nuovo_stato(0,size_griglia-1) == cell_type::power_pellet){
                         nuovo_stato(riga_g, colonna_g) = cell_type::power_pellet;
                         nuovo_stato(0, size_griglia-1) = cell_type::ghost2;
+                    } else{//else: se trovo un ghost switch posizione
+                        cell_type tmp = nuovo_stato(0,size_griglia-1);
+                        nuovo_stato(0,size_griglia-1) = cell_type::ghost2;
+                        nuovo_stato(riga_g, colonna_g) = tmp;
                     }
                 }
                 ghost_trovato = false;
-                riga_g = 0;
-                colonna_g = 0;
 
                 for(uint32_t i = 0; i < nuovo_stato.get_size() && !ghost_trovato; i++){
                     for(uint32_t j = 0; j < nuovo_stato.get_size() && !ghost_trovato; j++){
@@ -1277,12 +1323,14 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
                     } else if(nuovo_stato(size_griglia-1,0) == cell_type::power_pellet){
                         nuovo_stato(riga_g, colonna_g) = cell_type::power_pellet;
                         nuovo_stato(size_griglia-1, 0) = cell_type::ghost3;
+                    } else{//else: se trovo un ghost switch posizione
+                        cell_type tmp = nuovo_stato(size_griglia-1, 0);
+                        nuovo_stato(size_griglia-1, 0) = cell_type::ghost3;
+                        nuovo_stato(riga_g, colonna_g) = tmp;
                     }
                 }
                 ghost_trovato = false;
-                riga_g = 0;
-                colonna_g = 0;
-
+               
                 for(uint32_t i = 0; i < nuovo_stato.get_size() && !ghost_trovato; i++){
                     for(uint32_t j = 0; j < nuovo_stato.get_size() && !ghost_trovato; j++){
                         if(nuovo_stato(i, j) == cell_type::ghost4){
@@ -1303,13 +1351,37 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
                     } else if(nuovo_stato(size_griglia-1,size_griglia-1) == cell_type::power_pellet){
                         nuovo_stato(riga_g, colonna_g) = cell_type::power_pellet;
                         nuovo_stato(size_griglia-1,size_griglia-1) = cell_type::ghost4;
+                    } else {
+                        cell_type tmp = nuovo_stato(size_griglia-1, size_griglia-1);
+                        nuovo_stato(size_griglia-1, size_griglia-1) = cell_type::ghost4;
+                        nuovo_stato(riga_g, colonna_g) = tmp;
                     }
                 }
+
                 ghost_trovato = false;
+
+                //Controllo contenuto della cella in centro
+                if(centro == cell_type::empty){
+                }else if(centro == cell_type::pellet){
+                    pallets_left--;
+                    nuovo_stato.set_pellets_left(pallets_left);
+                    score += 10;
+                    nuovo_stato.set_score(score);
+                }else if(centro == cell_type::power_pellet){
+                    pallets_left--;
+                    nuovo_stato.set_pellets_left(pallets_left);
+                    score += 50;
+                    nuovo_stato.set_score(score);
+                    panic_mode_timer = PANIC_RESET;//panic reset + 1 idea?-> sbagliato. Prima ricavo il panic_contdown dello stato precedente:
+                    nuovo_stato.set_panic_countdown(panic_mode_timer);
+                    //una volta che pacman ha mangiato un power pellet -> sovrascrivo il panic-contdowm con panic-reset
+                }
+                nuovo_stato(riga_centro, colonna_centro) = cell_type::pacman;
+                nuovo_stato.set_panic_countdown(panic_mode_timer);
                 push_back(nuovo_stato);
                 return;
 
-            }else if(panic_mode_timer > 0){
+            }else {//panic_mode_timer > 0
                 int nr_ghost = 0; 
                 for(uint32_t i = 0; i < nuovo_stato.get_size(); i++){
                     for(uint32_t j = 0; j < nuovo_stato.get_size(); j++){
@@ -1325,72 +1397,32 @@ void pacman :: move(cell_type who, int delta_i, int delta_j){
                     }
                 }
 
-                if(nr_ghost == 4){
+                int ghost_presenti = 5 - nr_ghost;//4 - (number of ghosts on the grid before the eat) + 1.
+                if(ghost_presenti  == 1){
                     score += 200;
                     nuovo_stato.set_score(score);
-                }else if(nr_ghost == 3){
-                    score +=400;
+                }else if(ghost_presenti == 2){
+                    score += 400;
                     nuovo_stato.set_score(score);
-                }else if(nr_ghost == 2){
-                    score +=800;
+                }else if(ghost_presenti == 3){
+                    score += 800;
                     nuovo_stato.set_score(score);
-                }else if(nr_ghost == 1){
-                    score +=1600;
+                }else if(ghost_presenti == 4){
+                    score += 1600;
                     nuovo_stato.set_score(score);
                 }
                 //Nel ramo dei ghost, riga e colonna sono la posizione del ghost 
                 nuovo_stato(riga, colonna) = cell_type::empty;//eliminio il ghost
+                nuovo_stato.set_panic_countdown(panic_mode_timer);
                 push_back(nuovo_stato);
                 return;
             }
         }
     }
+}
 
     /*
       Winning / losing. The game is won when pellets_left reaches 0; lost when lives reaches 0. It is up to the caller to stop the game by checking the 
-      return value of the win() method. (The caller might do further moves even if there are no pellets left.)
+      return value of the win method. (The caller might do further moves even if there are no pellets left.)
+      Win verrà controllato dal chiamante
     */
-
-
-    /*Gestione personaggio pacman: per prima verifico il contenuto della cella di destinazione.
-      Se la cella di destinazione è: vuota -> non succede nulla, semplicemente mi sposto; 
-      è pellet: mangio il pellet, aggiorno il numero di pellet rimasti e aggiorno lo score; ecc.
-      Devo prima liberare la cella attuale di pacman e poi assegnare alla cella di destinazione 
-      pacman
-    */
-   //forse elimarare da qui
-    if(who  == cell_type::pacman){
-        if(contenuto_cella == cell_type::empty){
-            nuovo_stato(riga, colonna) = cell_type::empty;
-            nuovo_stato(nuova_riga, nuova_colonna) = cell_type::pacman;
-            push_back(nuovo_stato);
-            return;
-        }
-
-        if(contenuto_cella == cell_type::pellet){
-            nuovo_stato(riga, colonna) = cell_type::empty;
-            nuovo_stato(nuova_riga, nuova_colonna) = cell_type::pacman;
-            pallets_left--;
-            nuovo_stato.set_pellets_left(pallets_left);
-            score += 10;
-            nuovo_stato.set_score(score);
-            push_back(nuovo_stato);
-            return;
-        }
-
-        if(contenuto_cella == cell_type::power_pellet){
-            nuovo_stato(riga, colonna) = cell_type::empty;
-            nuovo_stato(nuova_riga, nuova_colonna) = cell_type::pacman;
-            pallets_left--;
-            nuovo_stato.set_pellets_left(pallets_left);
-            score += 50;
-            nuovo_stato.set_score(score);
-            nuovo_stato.set_panic_countdown(PANIC_RESET);
-            push_back(nuovo_stato);
-            return;
-        }
-    }
-    //forse eliminare fino a qui
-    }
-}
-
